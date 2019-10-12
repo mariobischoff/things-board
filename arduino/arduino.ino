@@ -1,66 +1,81 @@
 #include "DHT.h"
-#include <SoftwareSerial.h>
+// #include <SoftwareSerial.h>
 
 
-SoftwareSerial Arduino(3, 2);
-
+// SoftwareSerial Arduino(3, 2);
 
 
 // Variaveis
 // Sensores
 int luminosity;
+float humidity;
+float temperature;
 int soloHumidity;
-int temperature;
 
 // Atuadores
 bool pump;
 bool lamp;
 bool cooler;
 
+// String para comunicação NODEMCU esp8266
 String str;
 
-const int pinLDR = A0;
-const int pinHumidity = A1;
-const int pinDHT11 = A2;
-const int pinPump = 2;
+// Pinos
+const int pinDHT11 = A1;
+const int pinHumidity = A2;
 const int pinLamp = 3;
+const int pinPump = 3;
 const int pinCooler = 4;
 
 DHT dht(pinDHT11, DHT11);
 
 void setup() {
-  pinMode(pinoLDR, INPUT);
-  pinMode(pinoHumidity, INPUT);
+  pinMode(pinHumidity, INPUT);
+  pinMode(pinLamp, OUTPUT);
+  pinMode(pinCooler, OUTPUT);
 
   dht.begin();
   Serial.begin(9600);
-  Arduino.begin(4800);
-
-
+//  Arduino.begin(4800);
 }
 
 void loop() {
-  dht.read11(pinDHT11);
-  luminosity = analogRead(pinoLDR);
-  soloHumidity = analogRead(pinoHumidity);
-
-  Serial.print("luminosity: ");
-  Serial.println(luminosity);
+  
+  soloHumidity = analogRead(pinHumidity);
+  humidity = dht.readHumidity();
+  temperature = dht.readTemperature();
 
   Serial.print("solo humidity: ");
   Serial.println(soloHumidity);
 
   Serial.print("temperature: ");
-  Serial.print(dht.temperature);
+  Serial.println(temperature);
 
   Serial.print("humidity: ");
-  Serial.print(dht.humidity);
+  Serial.println(humidity);
 
+  Serial.println("------------------------------");
 
+  pump = true;
+  cooler = false;
+  digitalWrite(pinPump, !pump);
+  digitalWrite(pinCooler, !cooler);
+
+//  if (soloHumidity < 400) {
+//   digitalWrite(pinCooler, LOW);
+//   digitalWrite(pinPump, HIGH); 
+//  } else {
+//    digitalWrite(pinCooler, HIGH);
+//    digitalWrite(pinPump, LOW);
+//  }
+  
 
   // Enviar dados NodeMCU ESP8266
-  str = String(luminosity);
-  str += String(humidity);
-  Arduino.print(str);
-  delay(5000);
+  str = String(soloHumidity);
+  str += ";" + String(temperature);
+  str += ";" + String(humidity);
+
+//  Serial.print(str);
+//  Arduino.print(str);
+  delay(1000);
 }
