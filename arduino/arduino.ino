@@ -1,9 +1,6 @@
 #include "DHT.h"
-// #include <SoftwareSerial.h>
-
-
-// SoftwareSerial Arduino(3, 2);
-
+#include <ArduinoJson.h>
+#include <SoftwareSerial.h>
 
 // Variaveis
 // Sensores
@@ -11,10 +8,11 @@ int luminosity;
 float humidity;
 float temperature;
 int soloHumidity;
+SoftwareSerial esp(3, 2);
 
 // Atuadores
 bool pump;
-bool lamp;
+bool automatic;
 bool cooler;
 
 // String para comunicação NODEMCU esp8266
@@ -23,59 +21,77 @@ String str;
 // Pinos
 const int pinDHT11 = A1;
 const int pinHumidity = A2;
-const int pinLamp = 3;
-const int pinPump = 3;
-const int pinCooler = 4;
+const int pinPump = 4;
+const int pinCooler = 3;
 
 DHT dht(pinDHT11, DHT11);
 
 void setup() {
   pinMode(pinHumidity, INPUT);
-  pinMode(pinLamp, OUTPUT);
   pinMode(pinCooler, OUTPUT);
+  pinMode(pinPump, OUTPUT);
 
+  StaticJsonDocument<99> doc;
+  
+  automatic = false;
+  cooler = false;
+  pump = false;
   dht.begin();
+  
   Serial.begin(9600);
-//  Arduino.begin(4800);
+  esp.begin(4800);
 }
 
 void loop() {
+
+  if (esp.available()) {
+    DeserializationError error = deserializeJson(doc, esp.read());
+    if (error) {
+      Serial.println("Parsing failed!");
+      return;
+    }
+  } else {
+    automatic = doc["automatic"];
+    pump = doc["pump"];
+    cooler = doc["cooler"];
+  }
+
   
   soloHumidity = analogRead(pinHumidity);
   humidity = dht.readHumidity();
   temperature = dht.readTemperature();
 
-  Serial.print("solo humidity: ");
-  Serial.println(soloHumidity);
+  str = "{";
+  str += "\"soloHumidity\": " + String(soloHumidity);
+  str += ", \"humidity\": " + String(humidity);
+  str += ", \"temperature\": " + String(temperature);
+  str += ", \"pump\": " + String(pump);
+  str += ", \"cooler\": " + String(cooler);
+  str += ", \"auto\": " + String(automatic);
+  str += "}";
 
-  Serial.print("temperature: ");
-  Serial.println(temperature);
+  if (automatic) {
+    if (soloHumidity > 450) {
+      digitalWrite(pinPump, !true);
+    } else {
+      digitalWrite(pinPump, !false);
+    }
+    if (temperature > 30) {
+      digitalWrite(pinCooler, !true);
+    } else {
+      digitalWrite(pinCooler, !false);
+    }    
+  } else {
+    digitalWrite(pinPump, !pump);
+    digitalWrite(pinCooler, !cooler);
+  }
 
-  Serial.print("humidity: ");
-  Serial.println(humidity);
-
-  Serial.println("------------------------------");
-
-  pump = true;
-  cooler = false;
-  digitalWrite(pinPump, !pump);
-  digitalWrite(pinCooler, !cooler);
-
-//  if (soloHumidity < 400) {
-//   digitalWrite(pinCooler, LOW);
-//   digitalWrite(pinPump, HIGH); 
-//  } else {
-//    digitalWrite(pinCooler, HIGH);
-//    digitalWrite(pinPump, LOW);
-//  }
   
+  Serial.println("------------------------------"); 
 
   // Enviar dados NodeMCU ESP8266
-  str = String(soloHumidity);
-  str += ";" + String(temperature);
-  str += ";" + String(humidity);
 
-//  Serial.print(str);
-//  Arduino.print(str);
+  Serial.print(str);
+//  Arduino.print(str); 
   delay(1000);
 }
