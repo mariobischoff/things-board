@@ -8,7 +8,7 @@ int luminosity;
 float humidity;
 float temperature;
 int soloHumidity;
-SoftwareSerial esp(3, 2);
+SoftwareSerial esp(5, 6);
 
 // Atuadores
 bool pump;
@@ -17,8 +17,9 @@ bool cooler;
 
 // String para comunicação NODEMCU esp8266
 String str;
+String data;
 
-//StaticJsonDocument<99> doc;
+StaticJsonDocument<99> doc;
 
 // Pinos
 const int pinDHT11 = A1;
@@ -46,19 +47,23 @@ void setup() {
 
 void loop() {
 
-//  DeserializationError error = deserializeJson(doc, str);
-
-  //  if (Serial.available()) {
-  //    DeserializationError error = deserializeJson(doc, esp.read());
-  //    if (error) {
-  //      Serial.println("Parsing failed!");
-  //      return;
-  //    }
-  //  } else {
-  //    automatic = doc["automatic"];
-  //    pump = doc["pump"];
-  //    cooler = doc["cooler"];
-  //  }
+    if (esp.available()) {
+      data = esp.readString();
+      
+      int data_len = data.length() + 1;
+      char json[data_len];
+      data.toCharArray(json, data_len);
+     
+      DeserializationError error = deserializeJson(doc, json);
+      if (error) {
+        Serial.println("Parsing failed!");
+        return;
+      }
+    } else {
+      automatic = doc["automatic"];
+      pump = doc["pump"];
+      cooler = doc["cooler"];
+    }
 
 
   soloHumidity = analogRead(pinHumidity);
@@ -73,21 +78,6 @@ void loop() {
   str += ", \"cooler\": " + String(cooler);
   str += ", \"auto\": " + String(automatic);
   str += "}";
-
-  Serial.println(str);
-  
-  int str_len = str.length() + 1;
-
-  char json[str_len];
-
-  str.toCharArray(json, str_len);
-
-  Serial.println(json);
-  
-  StaticJsonDocument<200> doc;
-  deserializeJson(doc, json);
-  const double world = doc["soloHumidity"];
-  Serial.println(world, 6);
 
   if (automatic) {
     if (soloHumidity > 450) {
@@ -110,7 +100,7 @@ void loop() {
 
   // Enviar dados NodeMCU ESP8266
 
-//  Serial.print(str);
-  //  Arduino.print(str);
+  Serial.print(str);
+  esp.print(str);
   delay(1000);
 }
