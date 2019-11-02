@@ -18,11 +18,14 @@ bool cooler;
 // String para comunicação NODEMCU esp8266
 String str;
 
+//StaticJsonDocument<99> doc;
+
 // Pinos
 const int pinDHT11 = A1;
 const int pinHumidity = A2;
-const int pinPump = 4;
-const int pinCooler = 3;
+const int pinPump = 3;
+const int pinCooler = 4;
+
 
 DHT dht(pinDHT11, DHT11);
 
@@ -31,32 +34,33 @@ void setup() {
   pinMode(pinCooler, OUTPUT);
   pinMode(pinPump, OUTPUT);
 
-  StaticJsonDocument<99> doc;
-  
-  automatic = false;
+  automatic = true;
   cooler = false;
   pump = false;
   dht.begin();
-  
+
   Serial.begin(9600);
   esp.begin(4800);
 }
 
+
 void loop() {
 
-  if (esp.available()) {
-    DeserializationError error = deserializeJson(doc, esp.read());
-    if (error) {
-      Serial.println("Parsing failed!");
-      return;
-    }
-  } else {
-    automatic = doc["automatic"];
-    pump = doc["pump"];
-    cooler = doc["cooler"];
-  }
+//  DeserializationError error = deserializeJson(doc, str);
 
-  
+  //  if (Serial.available()) {
+  //    DeserializationError error = deserializeJson(doc, esp.read());
+  //    if (error) {
+  //      Serial.println("Parsing failed!");
+  //      return;
+  //    }
+  //  } else {
+  //    automatic = doc["automatic"];
+  //    pump = doc["pump"];
+  //    cooler = doc["cooler"];
+  //  }
+
+
   soloHumidity = analogRead(pinHumidity);
   humidity = dht.readHumidity();
   temperature = dht.readTemperature();
@@ -70,28 +74,43 @@ void loop() {
   str += ", \"auto\": " + String(automatic);
   str += "}";
 
+  Serial.println(str);
+  
+  int str_len = str.length() + 1;
+
+  char json[str_len];
+
+  str.toCharArray(json, str_len);
+
+  Serial.println(json);
+  
+  StaticJsonDocument<200> doc;
+  deserializeJson(doc, json);
+  const double world = doc["soloHumidity"];
+  Serial.println(world, 6);
+
   if (automatic) {
     if (soloHumidity > 450) {
       digitalWrite(pinPump, !true);
     } else {
       digitalWrite(pinPump, !false);
     }
-    if (temperature > 30) {
+    if (temperature > 33) {
       digitalWrite(pinCooler, !true);
     } else {
       digitalWrite(pinCooler, !false);
-    }    
+    }
   } else {
-    digitalWrite(pinPump, !pump);
-    digitalWrite(pinCooler, !cooler);
+    digitalWrite(pinCooler, !pump);
+    digitalWrite(pinPump, !cooler);
   }
 
-  
-  Serial.println("------------------------------"); 
+
+  Serial.println("------------------------------");
 
   // Enviar dados NodeMCU ESP8266
 
-  Serial.print(str);
-//  Arduino.print(str); 
+//  Serial.print(str);
+  //  Arduino.print(str);
   delay(1000);
 }
