@@ -1,3 +1,5 @@
+#include <SocketIoClient.h>
+
 #include <ESP8266WiFi.h>
 #include <ESP8266HTTPClient.h>
 #include <WebSocketClient.h>
@@ -9,11 +11,12 @@ char* email = "mariobischoffneto@hotmail.com";
 char* pw = "123123";
 
 boolean handshakeFailed = 0;
-char path[] = "/";
+char path[] = "/board/5dc7276011c6d139c8bbcb0d/";
 char* host = "192.168.0.109";
 const int espport = 3000;
 
-WebSocketClient webSocketClient;
+//WebSocketClient webSocketClient;
+SocketIoClient webSocket;
 WiFiClient client;
 
 // Define o pino para comportar como serial
@@ -26,39 +29,37 @@ String data;
 const char* ssid = "Bischoff";
 const char* password = "Kryptos12";
 
-// Conecta no servidor WS
-void wsconnect(){
-  if (client.connect(host, espport)) {
-    Serial.println("Connected.");
-  } else {
-    Serial.println("Connection failed.");
-    delay(1000);
-    if (handshakeFailed) {
-      handshakeFailed = 0;
-      ESP.restart();
-    }
-    handshakeFailed = 1;
-  }
-  webSocketClient.path = path;
-  webSocketClient.host = host;
-  if (webSocketClient.handshake(client)) {
-    Serial.println("Handshake successful.");
-  } else {
-    Serial.println("Handshake failed.");
-    delay(4000);
-    if (handshakeFailed) {
-      handshakeFailed = 0;
-      ESP.restart();
-    }
-    handshakeFailed = 1;
-  }
+void setConfig(const char * payload, size_t length) {
+  Serial.printf("got config: %s\n", payload);
 }
 
-// Autenticacao
-//void auth(char* email, char* pw) {
-//  client.get
+// Conecta no servidor WS
+//void wsconnect(){
+//  if (client.connect(host, espport)) {
+//    Serial.println("Connected.");
+//  } else {
+//    Serial.println("Connection failed.");
+//    delay(1000);
+//    if (handshakeFailed) {
+//      handshakeFailed = 0;
+//      ESP.restart();
+//    }
+//    handshakeFailed = 1;
+//  }
+//  webSocketClient.path = path;
+//  webSocketClient.host = host;
+//  if (webSocketClient.handshake(client)) {
+//    Serial.println("Handshake successful.");
+//  } else {
+//    Serial.println("Handshake failed.");
+//    delay(4000);
+//    if (handshakeFailed) {
+//      handshakeFailed = 0;
+//      ESP.restart();
+//    }
+//    handshakeFailed = 1;
+//  }
 //}
-
  
 void setup() 
 {
@@ -85,11 +86,16 @@ void setup()
   Serial.print("IP Address: ");
   Serial.println(WiFi.localIP());
   delay(1000);
-  wsconnect();
+  webSocket.on("setConfig", setConfig);
+  webSocket.begin("192.168.0.109", 3000, "/socket.io/?transport=websocket");
+//  wsconnect();
 }
  
 void loop() 
 {
+  webSocket.loop();
+  delay(2000);
+  webSocket.emit("data", "{\"sensor1\": 20,\"button1\": true}");
   
   // Entra quando tiver dados na Serial e o WiFi estiver conectado
 //  if (Nodemcu.available() > 0 && (WiFi.status() == WL_CONNECTED)) {
@@ -107,10 +113,17 @@ void loop()
 //    http.end();
 //    data = "";
 //  }
-//  delay(2500);+
-  digitalWrite(LED_BUILTIN, !HIGH);
-  delay(500);
-  digitalWrite(LED_BUILTIN, !LOW);
-  webSocketClient.sendData("Ola");
-  delay(5000);
+//  delay(2500);
+
+//  webSocketClient.getData(data);
+//  if (data.length() > 0) {
+//    Serial.println(data);
+//  }
+  
+//  digitalWrite(LED_BUILTIN, !HIGH);
+//  delay(500);
+//  digitalWrite(LED_BUILTIN, !LOW);
+//  webSocketClient.sendData("{\"sensor1\": 20,\"button1\": true}");
+
+//  delay(5000);
 }

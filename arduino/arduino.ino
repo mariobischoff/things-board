@@ -1,4 +1,4 @@
-#include "DHT.h"
+//#include "DHT.h"
 #include <ArduinoJson.h>
 #include <SoftwareSerial.h>
 
@@ -8,7 +8,7 @@ int luminosity;
 float humidity;
 float temperature;
 int soloHumidity;
-SoftwareSerial esp(5, 6);
+SoftwareSerial Nodemcu(5, 6);
 
 // Atuadores
 bool pump;
@@ -28,7 +28,7 @@ const int pinPump = 3;
 const int pinCooler = 4;
 
 
-DHT dht(pinDHT11, DHT11);
+//DHT dht(pinDHT11, DHT11);
 
 void setup() {
   pinMode(pinHumidity, INPUT);
@@ -38,18 +38,18 @@ void setup() {
   automatic = true;
   cooler = false;
   pump = false;
-  dht.begin();
+//  dht.begin();
 
   Serial.begin(9600);
-  esp.begin(4800);
+  Nodemcu.begin(9600);
 }
 
 
 void loop() {
 
-    if (esp.available()) {
-      data = esp.readString();
-      
+    if (Nodemcu.available()) {
+      data = Nodemcu.readString();
+      Serial.println(data);
       int data_len = data.length() + 1;
       char json[data_len];
       data.toCharArray(json, data_len);
@@ -67,13 +67,13 @@ void loop() {
 
 
   soloHumidity = analogRead(pinHumidity);
-  humidity = dht.readHumidity();
-  temperature = dht.readTemperature();
+//  humidity = dht.readHumidity();
+//  temperature = dht.readTemperature();
 
   str = "{";
   str += "\"soloHumidity\": " + String(soloHumidity);
-  str += ", \"humidity\": " + String(humidity);
-  str += ", \"temperature\": " + String(temperature);
+//  str += ", \"humidity\": " + String(humidity);
+//  str += ", \"temperature\": " + String(temperature);
   str += ", \"pump\": " + String(pump);
   str += ", \"cooler\": " + String(cooler);
   str += ", \"auto\": " + String(automatic);
@@ -100,7 +100,8 @@ void loop() {
 
   // Enviar dados NodeMCU ESP8266
 
-  Serial.print(str);
-  esp.print(str);
+//  Serial.print(str);
+  Nodemcu.print(str);
+  str = "";
   delay(1000);
 }
