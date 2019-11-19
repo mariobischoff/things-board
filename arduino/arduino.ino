@@ -47,23 +47,23 @@ void setup() {
 
 void loop() {
 
-    if (Nodemcu.available()) {
-      data = Nodemcu.readString();
-      Serial.println(data);
-      int data_len = data.length() + 1;
-      char json[data_len];
-      data.toCharArray(json, data_len);
-     
-      DeserializationError error = deserializeJson(doc, json);
-      if (error) {
-        Serial.println("Parsing failed!");
-        return;
-      }
+  if (Nodemcu.available()) {
+    data = Nodemcu.readString();
+    Serial.println(data);
+    int data_len = data.length() + 1;
+    char json[data_len];
+    data.toCharArray(json, data_len);
+       
+    DeserializationError error = deserializeJson(doc, json);
+    if (error) {
+      Serial.println("Parsing failed!");
+      return;
     } else {
       automatic = doc["automatic"];
       pump = doc["pump"];
       cooler = doc["cooler"];
     }
+  }
 
 
   soloHumidity = analogRead(pinHumidity);
@@ -76,7 +76,7 @@ void loop() {
 //  str += ", \"temperature\": " + String(temperature);
   str += ", \"pump\": " + String(pump);
   str += ", \"cooler\": " + String(cooler);
-  str += ", \"auto\": " + String(automatic);
+  str += ", \"automatic\": " + String(automatic);
   str += "}";
 
   if (automatic) {
@@ -103,5 +103,5 @@ void loop() {
 //  Serial.print(str);
   Nodemcu.print(str);
   str = "";
-  delay(1000);
+  delay(3000);
 }
