@@ -1,4 +1,4 @@
-//#include "DHT.h"
+#include "DHT.h"
 #include <ArduinoJson.h>
 #include <SoftwareSerial.h>
 
@@ -8,7 +8,7 @@ int luminosity;
 float humidity;
 float temperature;
 int soloHumidity;
-SoftwareSerial Nodemcu(5, 6);
+SoftwareSerial Nodemcu(10, 11);
 
 // Atuadores
 bool pump;
@@ -19,7 +19,7 @@ bool cooler;
 String str;
 String data;
 
-StaticJsonDocument<99> doc;
+StaticJsonDocument<200> doc;
 
 // Pinos
 const int pinDHT11 = A1;
@@ -28,7 +28,7 @@ const int pinPump = 3;
 const int pinCooler = 4;
 
 
-//DHT dht(pinDHT11, DHT11);
+DHT dht(pinDHT11, DHT11);
 
 void setup() {
   pinMode(pinHumidity, INPUT);
@@ -38,7 +38,7 @@ void setup() {
   automatic = true;
   cooler = false;
   pump = false;
-//  dht.begin();
+  dht.begin();
 
   Serial.begin(9600);
   Nodemcu.begin(9600);
@@ -47,13 +47,13 @@ void setup() {
 
 void loop() {
 
-  if (Nodemcu.available()) {
+  if (Nodemcu.available() > 0) {
     data = Nodemcu.readString();
-    Serial.println(data);
     int data_len = data.length() + 1;
     char json[data_len];
     data.toCharArray(json, data_len);
-       
+    Serial.print(json);
+
     DeserializationError error = deserializeJson(doc, json);
     if (error) {
       Serial.println("Parsing failed!");
@@ -67,13 +67,13 @@ void loop() {
 
 
   soloHumidity = analogRead(pinHumidity);
-//  humidity = dht.readHumidity();
-//  temperature = dht.readTemperature();
+  humidity = dht.readHumidity();
+  temperature = dht.readTemperature();
 
   str = "{";
   str += "\"soloHumidity\": " + String(soloHumidity);
-//  str += ", \"humidity\": " + String(humidity);
-//  str += ", \"temperature\": " + String(temperature);
+  str += ", \"humidity\": " + String(humidity);
+  str += ", \"temperature\": " + String(temperature);
   str += ", \"pump\": " + String(pump);
   str += ", \"cooler\": " + String(cooler);
   str += ", \"automatic\": " + String(automatic);
@@ -100,8 +100,8 @@ void loop() {
 
   // Enviar dados NodeMCU ESP8266
 
-//  Serial.print(str);
-  Nodemcu.print(str);
+  Serial.println(str);
+  Nodemcu.println(str);
   str = "";
   delay(3000);
 }
