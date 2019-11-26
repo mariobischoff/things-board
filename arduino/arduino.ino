@@ -19,7 +19,9 @@ bool cooler;
 String str;
 String data;
 
+// JSON
 StaticJsonDocument<200> doc;
+
 
 // Pinos
 const int pinDHT11 = A1;
@@ -35,9 +37,9 @@ void setup() {
   pinMode(pinCooler, OUTPUT);
   pinMode(pinPump, OUTPUT);
 
-  automatic = true;
-  cooler = false;
-  pump = false;
+  automatic = 1;
+  cooler = 0;
+  pump = 0;
   dht.begin();
 
   Serial.begin(9600);
@@ -46,13 +48,12 @@ void setup() {
 
 
 void loop() {
-
+  
   if (Nodemcu.available() > 0) {
     data = Nodemcu.readString();
     int data_len = data.length() + 1;
     char json[data_len];
     data.toCharArray(json, data_len);
-    Serial.print(json);
 
     DeserializationError error = deserializeJson(doc, json);
     if (error) {
@@ -65,10 +66,22 @@ void loop() {
     }
   }
 
-
   soloHumidity = analogRead(pinHumidity);
   humidity = dht.readHumidity();
   temperature = dht.readTemperature();
+
+  if (automatic) {
+    if (soloHumidity > 450) {
+      pump = 1;
+    } else {
+      pump = 0;
+    }
+    if (temperature > 33) {
+      cooler = 1;
+    } else {
+      cooler = 0;
+    }
+  }
 
   str = "{";
   str += "\"soloHumidity\": " + String(soloHumidity);
@@ -78,30 +91,12 @@ void loop() {
   str += ", \"cooler\": " + String(cooler);
   str += ", \"automatic\": " + String(automatic);
   str += "}";
-
-  if (automatic) {
-    if (soloHumidity > 450) {
-      digitalWrite(pinPump, !true);
-    } else {
-      digitalWrite(pinPump, !false);
-    }
-    if (temperature > 33) {
-      digitalWrite(pinCooler, !true);
-    } else {
-      digitalWrite(pinCooler, !false);
-    }
-  } else {
-    digitalWrite(pinCooler, !pump);
-    digitalWrite(pinPump, !cooler);
-  }
-
-
-  Serial.println("------------------------------");
+  
+  digitalWrite(pinPump, !pump);
+  digitalWrite(pinCooler, !cooler);
 
   // Enviar dados NodeMCU ESP8266
-
-  Serial.println(str);
   Nodemcu.println(str);
-  str = "";
-  delay(3000);
+  Serial.println(str);
+  delay(1000);
 }
